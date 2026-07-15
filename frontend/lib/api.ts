@@ -1,17 +1,12 @@
-// frontend/lib/api.ts
 import axios from 'axios';
 
-// Assuming your backend is running on port 5000. Adjust if different!
-const API_URL = 'http://localhost:5000/api'; 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export const api = axios.create({
   baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Automatically attach the JWT token to every request if it exists
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('token');
@@ -21,3 +16,14 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+export const setAuthToken = (token: string) => {
+  localStorage.setItem('token', token);
+  document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24}`;
+};
+
+export const clearAuthToken = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  document.cookie = 'token=; path=/; max-age=0';
+};
