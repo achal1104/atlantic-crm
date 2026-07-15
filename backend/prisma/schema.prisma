@@ -10,4 +10,119 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  
+}
+
+
+// --- ENUMS ---
+
+enum Role {
+  ADMIN
+  MANAGER
+  SALES_EXECUTIVE
+}
+
+enum LeadSource {
+  WEBSITE
+  FACEBOOK_ADS
+  GOOGLE_ADS
+  WHATSAPP
+  AI_CALLING
+  MANUAL
+}
+
+enum LeadStatus {
+  NEW
+  QUALIFIED
+  CONTACTED
+  INTERESTED
+  MEETING_SCHEDULED
+  PROPOSAL_SENT
+  WON
+  LOST
+}
+
+enum FollowUpType {
+  CALL
+  MEETING
+  REMINDER
+  EMAIL
+}
+
+// --- MODELS ---
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  avatar    String?
+  role      Role     @default(SALES_EXECUTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  assignedLeads Lead[]
+  followUps     FollowUp[]
+}
+
+model Lead {
+  id           String     @id @default(uuid())
+  name         String
+  phone        String
+  email        String?
+  source       LeadSource @default(MANUAL)
+  business     String?
+  city         String?
+  state        String?
+  budget       Float?
+  leadScore    Int        @default(0)
+  status       LeadStatus @default(NEW)
+  remarks      String?
+  nextFollowUp DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  // Relations
+  assignedToId String?
+  assignedTo   User?      @relation(fields: [assignedToId], references: [id])
+  followUps    FollowUp[]
+  activityLogs ActivityLog[]
+
+  // Indexes for faster filtering and sorting
+  @@index([status])
+  @@index([source])
+  @@index([assignedToId])
+}
+
+model FollowUp {
+  id          String       @id @default(uuid())
+  type        FollowUpType
+  notes       String?
+  scheduledAt DateTime
+  isCompleted Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([leadId])
+  @@index([userId])
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  action      String   // e.g., "Status changed to WON", "Lead assigned"
+  description String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
 }
