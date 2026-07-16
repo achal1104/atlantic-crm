@@ -39,7 +39,7 @@ export const markAllRead = async (req: AuthRequest, res: Response): Promise<void
 export const markOneRead = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     await prisma.notification.updateMany({
-      where: { id: req.params.id, userId: req.user!.id },
+      where: { id: req.params.id as string, userId: req.user!.id },
       data: { isRead: true },
     });
 

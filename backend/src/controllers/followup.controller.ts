@@ -60,7 +60,7 @@ export const createFollowUp = async (req: AuthRequest, res: Response): Promise<v
 export const completeFollowUp = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const followUp = await prisma.followUp.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: { isCompleted: true },
     });
 

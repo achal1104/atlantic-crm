@@ -74,7 +74,7 @@ export const getLeads = async (req: AuthRequest, res: Response): Promise<void> =
 export const getLeadById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const lead = await prisma.lead.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       include: {
         assignedTo: { select: { id: true, name: true, email: true } },
         followUps: { orderBy: { scheduledAt: 'desc' } },
@@ -123,15 +123,11 @@ export const createLead = async (req: AuthRequest, res: Response): Promise<void>
 export const updateLead = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const existing = await prisma.lead.findUnique({ where: { id: req.params.id } });
-    if (!existing) {
-      res.status(404).json({ success: false, message: 'Lead not found.' });
-      return;
-    }
+    if (!existing) { sendError(res, 'Lead not found', 404); return; }
 
-    const updates = { ...req.body };
-    if (updates.assignedToId === '') updates.assignedToId = null;
-
-    const lead = await prisma.lead.update({ where: { id: req.params.id }, data: updates });
+    const updateData = { ...req.body };
+    if (updateData.assignedToId === '' || updateData.assignedToId === null) updateData.assignedToId = null;
+    const lead = await prisma.lead.update({ where: { id: req.params.id }, data: updateData });
 
     if (updates.status && updates.status !== existing.status) {
       await prisma.activityLog.create({
@@ -160,16 +156,11 @@ export const updateLead = async (req: AuthRequest, res: Response): Promise<void>
 export const deleteLead = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const existing = await prisma.lead.findUnique({ where: { id: req.params.id } });
-    if (!existing) {
-      res.status(404).json({ success: false, message: 'Lead not found.' });
-      return;
-    }
-
+    if (!existing) { sendError(res, 'Lead not found', 404); return; }
     await prisma.lead.delete({ where: { id: req.params.id } });
-    res.json({ success: true, message: 'Lead deleted.' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'Failed to delete lead.' });
+    sendSuccess(res, { message: 'Lead deleted successfully' });
+  } catch {
+    sendError(res, 'Failed to delete lead');
   }
 };
 
