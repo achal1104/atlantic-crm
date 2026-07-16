@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 
-// --- Types ---
 export interface Lead {
   id: string;
   name: string;
@@ -39,15 +38,12 @@ export interface LeadFilters {
   order?: string;
 }
 
-// --- Dashboard ---
 export const useDashboardStats = () =>
   useQuery({ queryKey: ['dashboard'], queryFn: () => api.get('/dashboard/stats').then(r => r.data.data) });
 
-// --- Analytics ---
 export const useAnalytics = () =>
   useQuery({ queryKey: ['analytics'], queryFn: () => api.get('/analytics').then(r => r.data.data) });
 
-// --- Leads ---
 export const useLeads = (filters: LeadFilters = {}) =>
   useQuery({
     queryKey: ['leads', filters],
@@ -81,7 +77,6 @@ export const useDeleteLead = () => {
   });
 };
 
-// --- Follow-ups ---
 export const useFollowUps = (leadId?: string) =>
   useQuery({ queryKey: ['followups', leadId], queryFn: () => api.get('/followups', { params: { leadId } }).then(r => r.data.data) });
 
@@ -96,12 +91,11 @@ export const useCreateFollowUp = () => {
 export const useCompleteFollowUp = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => api.put(`/followups/${id}/complete`, {}).then(r => r.data),
+    mutationFn: (id: string) => api.put(`/followups/${id}/complete`).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['followups'] }),
   });
 };
 
-// --- Users ---
 export const useUsers = () =>
   useQuery({ queryKey: ['users'], queryFn: () => api.get('/users').then(r => r.data.data) });
 
@@ -122,7 +116,6 @@ export const useChangePassword = () =>
       api.put('/users/change-password', data).then(r => r.data),
   });
 
-// --- Notifications ---
 export const useNotifications = () =>
   useQuery({ queryKey: ['notifications'], queryFn: () => api.get('/notifications').then(r => r.data.data), refetchInterval: 30000 });
 

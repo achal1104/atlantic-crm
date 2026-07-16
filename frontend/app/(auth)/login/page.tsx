@@ -2,12 +2,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Building2 } from 'lucide-react';
+import { Eye, EyeOff, Zap, ArrowRight, TrendingUp, Users, BarChart3 } from 'lucide-react';
 import { api, setAuthToken } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -16,62 +17,184 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const response = await api.post('/auth/login', formData);
-      setAuthToken(response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      const res = await api.post('/auth/login', form);
+      setAuthToken(res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
       router.push('/dashboard');
     } catch (err: any) {
-      const data = err.response?.data;
-      setError(data?.message || data?.errors?.[0]?.msg || 'Invalid credentials.');
+      const d = err.response?.data;
+      setError(d?.message || d?.errors?.[0]?.msg || 'Invalid credentials.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex">
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-16 md:px-24 xl:px-32 bg-white">
-        <div className="flex items-center gap-2 mb-12">
-          <div className="bg-blue-600 p-2 rounded-lg">
-            <Building2 className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-xl font-bold text-gray-900">Atlantic AI CRM</span>
-        </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back</h1>
-        <p className="text-gray-500 mb-8 text-sm">Please enter your details to sign in.</p>
-        {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100">{error}</div>}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-            <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-gray-900 placeholder:text-gray-400"
-              placeholder="admin@atlantic.com" required />
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <Link href="/forgot-password" className="text-xs text-blue-600 hover:text-blue-700">Forgot password?</Link>
+    <div className="min-h-screen flex" style={{ background: 'linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0f172a 100%)' }}>
+      <div className="w-full lg:w-[45%] flex flex-col justify-center px-8 sm:px-12 xl:px-16 relative z-10">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-sm w-full mx-auto relative">
+          <div className="flex items-center gap-3 mb-10">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center glow-indigo">
+              <Zap className="w-5 h-5 text-white" />
             </div>
-            <input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-gray-900 placeholder:text-gray-400"
-              placeholder="••••••••" required />
+            <div>
+              <span className="text-lg font-bold text-white tracking-tight">Atlantic AI CRM</span>
+              <span className="block text-[10px] text-indigo-400 font-medium tracking-widest uppercase">Lead Management Platform</span>
+            </div>
           </div>
-          <button type="submit" disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors mt-2 disabled:opacity-50">
-            {loading ? 'Signing in...' : 'Sign in'}
-          </button>
-        </form>
-        <p className="text-center text-sm text-gray-600 mt-8">
-          Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium">Sign up</Link>
-        </p>
+
+          <h1 className="text-3xl font-bold text-white mb-1">Welcome back</h1>
+          <p className="text-slate-400 text-sm mb-8">Sign in to your workspace to continue.</p>
+
+          {error && (
+            <div className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/20 text-rose-300 px-4 py-3 rounded-xl text-sm mb-6">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Email address</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={e => setForm({ ...form, email: e.target.value })}
+                placeholder="you@company.com"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-600 text-sm outline-none focus:border-indigo-500 focus:bg-white/8 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                required
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Password</label>
+                <Link href="/forgot-password" className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  value={form.password}
+                  onChange={e => setForm({ ...form, password: e.target.value })}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 pr-11 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-600 text-sm outline-none focus:border-indigo-500 focus:bg-white/8 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
+              {loading ? (
+                <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Signing in...</>
+              ) : (
+                <><span>Sign in</span><ArrowRight className="w-4 h-4" /></>
+              )}
+            </button>
+          </form>
+
+          <p className="text-center text-sm text-slate-500 mt-8">
+            Don&apos;t have an account?{' '}
+            <Link href="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">Create one free</Link>
+          </p>
+        </div>
       </div>
-      <div className="hidden lg:flex w-1/2 bg-gray-50 items-center justify-center relative overflow-hidden">
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-blue-100 blur-3xl opacity-50" />
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 rounded-full bg-indigo-100 blur-3xl opacity-50" />
-        <div className="z-10 text-center max-w-md px-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Manage leads smarter, not harder.</h2>
-          <p className="text-gray-600">Our AI-powered CRM streamlines your pipeline, automates follow-ups, and helps your team close more deals.</p>
+
+      <div className="hidden lg:flex w-[55%] items-center justify-center relative overflow-hidden p-12">
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }}
+        />
+        <div className="absolute top-1/4 right-1/4 w-80 h-80 bg-indigo-600/25 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/3 left-1/3 w-64 h-64 bg-purple-600/20 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 w-48 h-48 bg-cyan-500/15 rounded-full blur-3xl" />
+
+        <div className="relative z-10 max-w-lg w-full">
+          <div className="glass rounded-3xl p-8 mb-6 border border-white/10" style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(20px)' }}>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-white font-bold text-sm">Atlantic AI CRM</p>
+                <p className="text-slate-400 text-xs">Lead Management Platform</p>
+              </div>
+              <div className="ml-auto flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-emerald-400 text-xs font-medium">Live</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="rounded-2xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                <p className="text-lg font-bold text-indigo-400">2,847</p>
+                <p className="text-slate-500 text-[10px] mt-0.5">Total Leads</p>
+              </div>
+              <div className="rounded-2xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                <p className="text-lg font-bold text-emerald-400">384</p>
+                <p className="text-slate-500 text-[10px] mt-0.5">Converted</p>
+              </div>
+              <div className="rounded-2xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                <p className="text-lg font-bold text-purple-400">$1.2M</p>
+                <p className="text-slate-500 text-[10px] mt-0.5">Revenue</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {[
+                { stage: 'Qualified', pct: 78, color: 'bg-indigo-500' },
+                { stage: 'Proposal Sent', pct: 52, color: 'bg-purple-500' },
+                { stage: 'Won', pct: 34, color: 'bg-emerald-500' },
+              ].map(({ stage, pct, color }) => (
+                <div key={stage} className="flex items-center gap-3">
+                  <span className="text-slate-400 text-xs w-24 shrink-0">{stage}</span>
+                  <div className="flex-1 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                    <div className={`h-1.5 rounded-full ${color}`} style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="text-slate-400 text-xs w-8 text-right">{pct}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-4 rounded-2xl px-4 py-3 border border-white/5 hover:border-indigo-500/30 transition-all" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-4 h-4 text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-white text-xs font-semibold">AI Lead Scoring</p>
+                <p className="text-slate-500 text-[11px]">Prioritize high-value leads automatically</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 rounded-2xl px-4 py-3 border border-white/5 hover:border-indigo-500/30 transition-all" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4 text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-white text-xs font-semibold">Team Pipeline</p>
+                <p className="text-slate-500 text-[11px]">Kanban board with drag & drop stages</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 rounded-2xl px-4 py-3 border border-white/5 hover:border-indigo-500/30 transition-all" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                <BarChart3 className="w-4 h-4 text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-white text-xs font-semibold">Live Analytics</p>
+                <p className="text-slate-500 text-[11px]">Real-time conversion & revenue tracking</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
