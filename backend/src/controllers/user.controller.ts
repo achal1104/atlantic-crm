@@ -79,17 +79,10 @@ export const getAllUsers = async (_req: AuthRequest, res: Response): Promise<voi
 
 export const deleteUser = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-<<<<<<< HEAD
-    await prisma.user.delete({ where: { id: req.params.id } });
+    await prisma.user.delete({ where: { id: req.params.id as string } });
     res.json({ success: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Failed to delete user.' });
-=======
-    await prisma.user.delete({ where: { id: req.params.id as string } });
-    sendSuccess(res, { message: 'User deleted successfully' });
-  } catch {
-    sendError(res, 'Failed to delete user');
->>>>>>> 6a95c8e (fix: resolve TypeScript build errors for Render deployment)
   }
 };

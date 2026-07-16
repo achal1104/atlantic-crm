@@ -122,14 +122,18 @@ export const createLead = async (req: AuthRequest, res: Response): Promise<void>
 
 export const updateLead = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const existing = await prisma.lead.findUnique({ where: { id: req.params.id } });
-    if (!existing) { sendError(res, 'Lead not found', 404); return; }
+    const existing = await prisma.lead.findUnique({ where: { id: req.params.id as string } });
+    if (!existing) {
+      res.status(404).json({ success: false, message: 'Lead not found.' });
+      return;
+    }
 
     const updateData = { ...req.body };
     if (updateData.assignedToId === '' || updateData.assignedToId === null) updateData.assignedToId = null;
-    const lead = await prisma.lead.update({ where: { id: req.params.id }, data: updateData });
 
-    if (updates.status && updates.status !== existing.status) {
+    const lead = await prisma.lead.update({ where: { id: req.params.id as string }, data: updateData });
+
+    if (updateData.status && updateData.status !== existing.status) {
       await prisma.activityLog.create({
         data: {
           leadId: lead.id,
@@ -142,8 +146,8 @@ export const updateLead = async (req: AuthRequest, res: Response): Promise<void>
       }
     }
 
-    if (updates.assignedToId && updates.assignedToId !== existing.assignedToId) {
-      await notifyLeadAssigned(lead.id, updates.assignedToId, lead.name);
+    if (updateData.assignedToId && updateData.assignedToId !== existing.assignedToId) {
+      await notifyLeadAssigned(lead.id, updateData.assignedToId, lead.name);
     }
 
     res.json({ success: true, data: lead });
@@ -155,12 +159,16 @@ export const updateLead = async (req: AuthRequest, res: Response): Promise<void>
 
 export const deleteLead = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const existing = await prisma.lead.findUnique({ where: { id: req.params.id } });
-    if (!existing) { sendError(res, 'Lead not found', 404); return; }
-    await prisma.lead.delete({ where: { id: req.params.id } });
-    sendSuccess(res, { message: 'Lead deleted successfully' });
-  } catch {
-    sendError(res, 'Failed to delete lead');
+    const existing = await prisma.lead.findUnique({ where: { id: req.params.id as string } });
+    if (!existing) {
+      res.status(404).json({ success: false, message: 'Lead not found.' });
+      return;
+    }
+    await prisma.lead.delete({ where: { id: req.params.id as string } });
+    res.json({ success: true, message: 'Lead deleted successfully.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to delete lead.' });
   }
 };
 
