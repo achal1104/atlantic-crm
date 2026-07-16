@@ -7,12 +7,14 @@ export const getDashboardStats = async (req: AuthRequest, res: Response): Promis
   try {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
+    const now = new Date();
 
-    const [total, todayLeads, converted, lost, recentActivity] = await Promise.all([
+    const [total, todayLeads, converted, lost, appointments, recentActivity] = await Promise.all([
       prisma.lead.count(),
       prisma.lead.count({ where: { createdAt: { gte: todayStart } } }),
       prisma.lead.count({ where: { status: 'WON' } }),
       prisma.lead.count({ where: { status: 'LOST' } }),
+      prisma.followUp.count({ where: { isCompleted: false, scheduledAt: { gte: now } } }),
       prisma.activityLog.findMany({
         take: 10,
         orderBy: { createdAt: 'desc' },
@@ -31,6 +33,7 @@ export const getDashboardStats = async (req: AuthRequest, res: Response): Promis
         todayLeads,
         convertedLeads: converted,
         lostLeads: lost,
+        appointments,
         revenue: revenue._sum.budget ?? 0,
         recentActivity,
       },

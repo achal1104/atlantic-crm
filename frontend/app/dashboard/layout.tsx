@@ -1,9 +1,10 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Users, Kanban, BarChart3, Bell, Building2, LogOut, CalendarCheck, UserCircle, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, Kanban, BarChart3, Building2, LogOut, CalendarCheck, UserCircle, Menu, Bell } from 'lucide-react';
 import { clearAuthToken } from '@/lib/api';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useNotifications, useMarkAllRead, useMarkOneRead } from '@/lib/hooks';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -14,18 +15,87 @@ const navItems = [
   { href: '/dashboard/profile', label: 'Profile', icon: UserCircle },
 ];
 
+function NotificationBell() {
+  const { data: notifications = [] } = useNotifications();
+  const markAll = useMarkAllRead();
+  const markOne = useMarkOneRead();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const unread = notifications.filter((n: any) => !n.isRead).length;
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const TYPE_COLORS: Record<string, string> = {
+    LEAD_ASSIGNED: 'bg-blue-100 text-blue-700',
+    LEAD_UPDATED: 'bg-yellow-100 text-yellow-700',
+    FOLLOWUP_REMINDER: 'bg-purple-100 text-purple-700',
+  };
+
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={() => setOpen(!open)} className="relative text-gray-500 hover:text-blue-600">
+        <Bell className="w-6 h-6" />
+        {unread > 0 && (
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">
+            {unread > 9 ? '9+' : unread}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-10 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-50">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <span className="text-sm font-semibold text-gray-900">Notifications</span>
+            {unread > 0 && (
+              <button onClick={() => markAll.mutate()} className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                Mark all read
+              </button>
+            )}
+          </div>
+          <ul className="max-h-80 overflow-y-auto divide-y divide-gray-50">
+            {notifications.length === 0 ? (
+              <li className="px-4 py-6 text-center text-sm text-gray-400">No notifications</li>
+            ) : notifications.map((n: any) => (
+              <li key={n.id}
+                onClick={() => { if (!n.isRead) markOne.mutate(n.id); }}
+                className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${!n.isRead ? 'bg-blue-50/40' : ''}`}>
+                <div className="flex items-start gap-2">
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 mt-0.5 ${TYPE_COLORS[n.type] ?? 'bg-gray-100 text-gray-600'}`}>
+                    {n.type.replace('_', ' ')}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-800 leading-snug">{n.message}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{new Date(n.createdAt).toLocaleString()}</p>
+                  </div>
+                  {!n.isRead && <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0 mt-1.5" />}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleLogout = () => {
-    clearAuthToken();
-    router.push('/login');
-  };
+  const handleLogout = () => { clearAuthToken(); router.push('/login'); };
+  const [initials, setInitials] = useState('U');
 
-  const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
-  const initials = user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'U';
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const i = user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'U';
+    setInitials(i);
+  }, []);
 
   const SidebarContent = () => (
     <>
@@ -55,12 +125,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Desktop Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col fixed h-full z-20">
         <SidebarContent />
       </aside>
 
-      {/* Mobile Sidebar */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-30 md:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setSidebarOpen(false)} />
@@ -77,10 +145,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
           <div className="flex-1 md:flex-none" />
           <div className="flex items-center space-x-4">
-            <button className="text-gray-500 hover:text-blue-600 relative">
-              <Bell className="w-6 h-6" />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
+            <NotificationBell />
             <Link href="/dashboard/profile">
               <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm cursor-pointer">
                 {initials}

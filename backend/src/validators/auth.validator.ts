@@ -3,7 +3,6 @@
 import { body, validationResult } from 'express-validator';
 import { Request, Response, NextFunction } from 'express';
 
-// Middleware to catch and return validation errors
 export const validate = (req: Request, res: Response, next: NextFunction): void => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -13,33 +12,26 @@ export const validate = (req: Request, res: Response, next: NextFunction): void 
   next();
 };
 
-// Rules for new user registration
 export const registerValidator = [
-  body('name')
-    .trim()
-    .notEmpty().withMessage('Name is required')
-    .isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
-  
-  body('email')
-    .trim()
-    .isEmail().withMessage('Please provide a valid email address')
-    .normalizeEmail(),
-  
-  body('password')
-    .isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
-  
-  validate
+  body('name').trim().notEmpty().withMessage('Name is required').isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
+  body('email').trim().isEmail().withMessage('Please provide a valid email address').normalizeEmail(),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+  validate,
 ];
 
-// Rules for user login
 export const loginValidator = [
-  body('email')
-    .trim()
-    .isEmail().withMessage('Please provide a valid email address')
-    .normalizeEmail(),
-  
-  body('password')
-    .notEmpty().withMessage('Password is required'),
-  
-  validate
+  body('email').trim().isEmail().withMessage('Please provide a valid email address').normalizeEmail(),
+  body('password').notEmpty().withMessage('Password is required'),
+  validate,
+];
+
+export const forgotPasswordValidator = [
+  body('email').trim().isEmail().withMessage('Please provide a valid email address').normalizeEmail(),
+  validate,
+];
+
+export const resetPasswordValidator = [
+  body('token').notEmpty().withMessage('Token is required'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  validate,
 ];

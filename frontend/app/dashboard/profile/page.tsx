@@ -61,12 +61,12 @@ export default function ProfilePage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
             <input value={profileForm.name} onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none" required />
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-gray-900 placeholder:text-gray-400" required />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Avatar URL</label>
             <input value={profileForm.avatar} onChange={(e) => setProfileForm({ ...profileForm, avatar: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-gray-900 placeholder:text-gray-400"
               placeholder="https://..." />
           </div>
           {profileMsg && <p className="text-sm text-green-600">{profileMsg}</p>}
@@ -86,7 +86,7 @@ export default function ProfilePage() {
                 {field === 'currentPassword' ? 'Current Password' : field === 'newPassword' ? 'New Password' : 'Confirm New Password'}
               </label>
               <input type="password" value={pwForm[field]} onChange={(e) => setPwForm({ ...pwForm, [field]: e.target.value })}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-gray-900 placeholder:text-gray-400"
                 required minLength={6} />
             </div>
           ))}

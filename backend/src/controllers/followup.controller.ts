@@ -2,6 +2,7 @@ import { Response } from 'express';
 import prisma from '../prisma/client.js';
 import { AuthRequest } from '../middleware/auth.middleware.js';
 import { sendSuccess, sendError } from '../utils/response.js';
+import { notifyFollowUpReminder } from '../services/notification.service.js';
 
 export const getFollowUps = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -26,6 +27,8 @@ export const createFollowUp = async (req: AuthRequest, res: Response): Promise<v
     await prisma.activityLog.create({
       data: { leadId, action: 'Follow-up Scheduled', description: `${type} scheduled for ${new Date(scheduledAt).toLocaleDateString()}` },
     });
+    const lead = await prisma.lead.findUnique({ where: { id: leadId }, select: { name: true } });
+    if (lead) await notifyFollowUpReminder(req.user!.id, lead.name, type);
     sendSuccess(res, { data: followUp, message: 'Follow-up created' }, 201);
   } catch (err: any) {
     sendError(res, err.message || 'Failed to create follow-up');

@@ -121,3 +121,23 @@ export const useChangePassword = () =>
     mutationFn: (data: { currentPassword: string; newPassword: string }) =>
       api.put('/users/change-password', data).then(r => r.data),
   });
+
+// --- Notifications ---
+export const useNotifications = () =>
+  useQuery({ queryKey: ['notifications'], queryFn: () => api.get('/notifications').then(r => r.data.data), refetchInterval: 30000 });
+
+export const useMarkAllRead = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.put('/notifications/read-all', {}).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+};
+
+export const useMarkOneRead = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.put(`/notifications/${id}/read`, {}).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+};

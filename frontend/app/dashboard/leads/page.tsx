@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useLeads, useCreateLead, useUpdateLead, useDeleteLead, useUsers, Lead } from '@/lib/hooks';
-import { Plus, Search, Filter, Download, MoreVertical, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Download, MoreVertical, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const STATUSES = ['NEW', 'QUALIFIED', 'CONTACTED', 'INTERESTED', 'MEETING_SCHEDULED', 'PROPOSAL_SENT', 'WON', 'LOST'];
 const SOURCES = ['WEBSITE', 'FACEBOOK_ADS', 'GOOGLE_ADS', 'WHATSAPP', 'AI_CALLING', 'MANUAL'];
@@ -15,18 +15,26 @@ const STATUS_COLORS: Record<string, string> = {
 
 const EMPTY_FORM = { name: '', phone: '', email: '', source: 'MANUAL', status: 'NEW', business: '', city: '', state: '', budget: '', leadScore: '0', remarks: '', assignedToId: '' };
 
+const PLACEHOLDERS: Record<string, string> = {
+  name: 'e.g. John Smith', phone: 'e.g. +91 98765 43210', email: 'e.g. john@example.com',
+  business: 'e.g. TechCorp Pvt Ltd', city: 'e.g. Mumbai', state: 'e.g. Maharashtra',
+  budget: 'e.g. 50000', leadScore: '0–100',
+};
+
 export default function LeadsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
   const [showModal, setShowModal] = useState(false);
   const [editLead, setEditLead] = useState<Lead | null>(null);
   const [form, setForm] = useState<Record<string, string>>(EMPTY_FORM);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [error, setError] = useState('');
 
-  const { data, isLoading } = useLeads({ page, limit: 10, search, status: statusFilter, source: sourceFilter });
+  const { data, isLoading } = useLeads({ page, limit: 10, search, status: statusFilter, source: sourceFilter, sortBy, order });
   const { data: users = [] } = useUsers();
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
@@ -36,6 +44,15 @@ export default function LeadsPage() {
   const pagination = data?.pagination;
 
   const openCreate = () => { setEditLead(null); setForm(EMPTY_FORM); setError(''); setShowModal(true); };
+
+  const handleSort = (col: string) => {
+    if (sortBy === col) setOrder(o => o === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setOrder('desc'); }
+    setPage(1);
+  };
+  const SortIcon = ({ col }: { col: string }) => (
+    <span className="ml-1 text-gray-400">{sortBy === col ? (order === 'asc' ? '↑' : '↓') : '↕'}</span>
+  );
   const openEdit = (lead: Lead) => {
     setEditLead(lead);
     setForm({ name: lead.name, phone: lead.phone, email: lead.email ?? '', source: lead.source, status: lead.status, business: lead.business ?? '', city: lead.city ?? '', state: lead.state ?? '', budget: String(lead.budget ?? ''), leadScore: String(lead.leadScore), remarks: lead.remarks ?? '', assignedToId: lead.assignedToId ?? '' });
@@ -109,8 +126,20 @@ export default function LeadsPage() {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                {['Name / Email', 'Phone', 'Source', 'Status', 'Score', 'Assigned To', 'Actions'].map((h) => (
-                  <th key={h} className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                {[
+                  { label: 'Name / Email', col: 'name' },
+                  { label: 'Phone', col: 'phone' },
+                  { label: 'Source', col: 'source' },
+                  { label: 'Status', col: 'status' },
+                  { label: 'Score', col: 'leadScore' },
+                  { label: 'Assigned To', col: null },
+                  { label: 'Actions', col: null },
+                ].map(({ label, col }) => (
+                  <th key={label}
+                    onClick={() => col && handleSort(col)}
+                    className={`px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide ${col ? 'cursor-pointer hover:text-gray-700 select-none' : ''}`}>
+                    {label}{col && <SortIcon col={col} />}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -200,36 +229,38 @@ export default function LeadsPage() {
                 <div key={key}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
                   <input type={type} value={form[key]} onChange={(e) => f(key, e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-sm"
+                    placeholder={PLACEHOLDERS[key] || ''}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-sm text-gray-900 placeholder:text-gray-400"
                     required={required} />
                 </div>
               ))}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
                 <select value={form.source} onChange={(e) => f('source', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-sm">
-                  {SOURCES.map((s) => <option key={s}>{s}</option>)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-sm text-gray-900 bg-white">
+                  {SOURCES.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                 <select value={form.status} onChange={(e) => f('status', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-sm">
-                  {STATUSES.map((s) => <option key={s}>{s}</option>)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-sm text-gray-900 bg-white">
+                  {STATUSES.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Assign To</label>
                 <select value={form.assignedToId} onChange={(e) => f('assignedToId', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-sm">
-                  <option value="">Unassigned</option>
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-sm text-gray-900 bg-white">
+                  <option value="">— Select Assignee —</option>
                   {users.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
                 <textarea value={form.remarks} onChange={(e) => f('remarks', e.target.value)} rows={2}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-sm resize-none" />
+                  placeholder="Optional notes about this lead..."
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-sm resize-none text-gray-900 placeholder:text-gray-400" />
               </div>
               <div className="sm:col-span-2 flex gap-3 pt-2">
                 <button type="submit" disabled={createLead.isPending || updateLead.isPending}

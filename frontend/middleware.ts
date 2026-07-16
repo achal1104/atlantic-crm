@@ -4,7 +4,8 @@ export function middleware(req: NextRequest) {
   const token = req.cookies.get('token')?.value;
   const { pathname } = req.nextUrl;
 
-  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register')
+    || pathname.startsWith('/forgot-password') || pathname.startsWith('/reset-password');
   const isDashboard = pathname.startsWith('/dashboard');
 
   if (isDashboard && !token) {
@@ -17,5 +18,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/login', '/register'],
+  matcher: ['/dashboard/:path*', '/login', '/register', '/forgot-password', '/reset-password'],
 };

@@ -1,13 +1,12 @@
 import { Router } from 'express';
-import { registerUser, loginUser } from '../controllers/auth.controller.js';
-import { registerValidator, loginValidator } from '../validators/auth.validator.js';
+import { registerUser, loginUser, forgotPassword, resetPassword } from '../controllers/auth.controller.js';
+import { registerValidator, loginValidator, forgotPasswordValidator, resetPasswordValidator } from '../validators/auth.validator.js';
 
 const router = Router();
 
-// POST /api/auth/register
 router.post('/register', registerValidator, registerUser);
-
-// POST /api/auth/login
 router.post('/login', loginValidator, loginUser);
+router.post('/forgot-password', forgotPasswordValidator, forgotPassword);
+router.post('/reset-password', resetPasswordValidator, resetPassword);
 
 export default router;

@@ -1,0 +1,501 @@
+openapi: 3.0.3
+info:
+  title: Atlantic AI CRM API
+  description: Production-ready Lead Management CRM REST API
+  version: 1.0.0
+  contact:
+    name: Atlantic AI
+
+servers:
+  - url: http://localhost:5000/api
+    description: Local development
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string, format: email }
+        role: { type: string, enum: [ADMIN, MANAGER, SALES_EXECUTIVE] }
+        avatar: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    Lead:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        phone: { type: string }
+        email: { type: string, nullable: true }
+        source: { type: string, enum: [WEBSITE, FACEBOOK_ADS, GOOGLE_ADS, WHATSAPP, AI_CALLING, MANUAL] }
+        status: { type: string, enum: [NEW, QUALIFIED, CONTACTED, INTERESTED, MEETING_SCHEDULED, PROPOSAL_SENT, WON, LOST] }
+        business: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        state: { type: string, nullable: true }
+        budget: { type: number, nullable: true }
+        leadScore: { type: integer, minimum: 0, maximum: 100 }
+        remarks: { type: string, nullable: true }
+        assignedToId: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    FollowUp:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        leadId: { type: string }
+        userId: { type: string }
+        type: { type: string, enum: [CALL, MEETING, REMINDER, EMAIL] }
+        notes: { type: string, nullable: true }
+        scheduledAt: { type: string, format: date-time }
+        isCompleted: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    Notification:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string }
+        type: { type: string, enum: [LEAD_ASSIGNED, LEAD_UPDATED, FOLLOWUP_REMINDER] }
+        message: { type: string }
+        isRead: { type: boolean }
+        leadId: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    Error:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        message: { type: string }
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string, example: John Doe }
+                email: { type: string, example: john@example.com }
+                password: { type: string, minLength: 6 }
+      responses:
+        '201':
+          description: User registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  token: { type: string }
+                  user: { $ref: '#/components/schemas/User' }
+        '400':
+          description: Validation error or email already exists
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and receive JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  token: { type: string }
+                  user: { $ref: '#/components/schemas/User' }
+        '401':
+          description: Invalid credentials
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request password reset email
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '200':
+          description: Reset link sent (always returns success to prevent enumeration)
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password using token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token: { type: string }
+                password: { type: string, minLength: 6 }
+      responses:
+        '200':
+          description: Password reset successfully
+        '400':
+          description: Invalid or expired token
+
+  /leads:
+    get:
+      tags: [Leads]
+      summary: List leads with search, filter, pagination, sorting
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string, enum: [NEW, QUALIFIED, CONTACTED, INTERESTED, MEETING_SCHEDULED, PROPOSAL_SENT, WON, LOST] }
+        - in: query
+          name: source
+          schema: { type: string, enum: [WEBSITE, FACEBOOK_ADS, GOOGLE_ADS, WHATSAPP, AI_CALLING, MANUAL] }
+        - in: query
+          name: sortBy
+          schema: { type: string, default: createdAt }
+        - in: query
+          name: order
+          schema: { type: string, enum: [asc, desc], default: desc }
+      responses:
+        '200':
+          description: Paginated leads list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { type: array, items: { $ref: '#/components/schemas/Lead' } }
+                  pagination:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      page: { type: integer }
+                      limit: { type: integer }
+                      pages: { type: integer }
+
+    post:
+      tags: [Leads]
+      summary: Create a new lead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone]
+              properties:
+                name: { type: string }
+                phone: { type: string }
+                email: { type: string }
+                source: { type: string }
+                status: { type: string }
+                business: { type: string }
+                city: { type: string }
+                state: { type: string }
+                budget: { type: number }
+                leadScore: { type: integer }
+                remarks: { type: string }
+                assignedToId: { type: string }
+      responses:
+        '201':
+          description: Lead created
+        '400':
+          description: Validation error
+
+  /leads/export/csv:
+    get:
+      tags: [Leads]
+      summary: Export all leads as CSV
+      responses:
+        '200':
+          description: CSV file download
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /leads/{id}:
+    get:
+      tags: [Leads]
+      summary: Get single lead with follow-ups and activity
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Lead detail
+        '404':
+          description: Lead not found
+
+    put:
+      tags: [Leads]
+      summary: Update a lead
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Lead' }
+      responses:
+        '200':
+          description: Lead updated
+        '404':
+          description: Lead not found
+
+    delete:
+      tags: [Leads]
+      summary: Delete a lead
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Lead deleted
+        '404':
+          description: Lead not found
+
+  /dashboard/stats:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard statistics
+      responses:
+        '200':
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      totalLeads: { type: integer }
+                      todayLeads: { type: integer }
+                      convertedLeads: { type: integer }
+                      lostLeads: { type: integer }
+                      appointments: { type: integer }
+                      revenue: { type: number }
+                      recentActivity: { type: array, items: { type: object } }
+
+  /analytics:
+    get:
+      tags: [Analytics]
+      summary: Get analytics data
+      responses:
+        '200':
+          description: Analytics data including daily/monthly leads, by source, by status, conversion rate, sales performance
+
+  /followups:
+    get:
+      tags: [Follow-ups]
+      summary: List follow-ups (optionally filter by leadId)
+      parameters:
+        - in: query
+          name: leadId
+          schema: { type: string }
+      responses:
+        '200':
+          description: Follow-ups list
+
+    post:
+      tags: [Follow-ups]
+      summary: Create a follow-up
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [leadId, type, scheduledAt]
+              properties:
+                leadId: { type: string }
+                type: { type: string, enum: [CALL, MEETING, REMINDER, EMAIL] }
+                notes: { type: string }
+                scheduledAt: { type: string, format: date-time }
+      responses:
+        '201':
+          description: Follow-up created
+
+  /followups/{id}/complete:
+    put:
+      tags: [Follow-ups]
+      summary: Mark follow-up as completed
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Follow-up marked complete
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: Get user notifications (last 20)
+      responses:
+        '200':
+          description: Notifications list with unread count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { type: array, items: { $ref: '#/components/schemas/Notification' } }
+                  unreadCount: { type: integer }
+
+  /notifications/read-all:
+    put:
+      tags: [Notifications]
+      summary: Mark all notifications as read
+      responses:
+        '200':
+          description: All marked as read
+
+  /notifications/{id}/read:
+    put:
+      tags: [Notifications]
+      summary: Mark a single notification as read
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Notification marked as read
+
+  /users/profile:
+    get:
+      tags: [Users]
+      summary: Get own profile
+      responses:
+        '200':
+          description: User profile
+
+    put:
+      tags: [Users]
+      summary: Update name and avatar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                avatar: { type: string }
+      responses:
+        '200':
+          description: Profile updated
+
+  /users/change-password:
+    put:
+      tags: [Users]
+      summary: Change own password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: { type: string }
+                newPassword: { type: string, minLength: 6 }
+      responses:
+        '200':
+          description: Password changed
+        '400':
+          description: Current password incorrect
+
+  /users:
+    get:
+      tags: [Users]
+      summary: List all users (Admin/Manager only)
+      responses:
+        '200':
+          description: Users list
+        '403':
+          description: Forbidden
+
+  /users/{id}:
+    delete:
+      tags: [Users]
+      summary: Delete a user (Admin only)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: User deleted
+        '403':
+          description: Forbidden
+
+  /health:
+    get:
+      tags: [Health]
+      summary: API health check
+      security: []
+      responses:
+        '200':
+          description: API is running
