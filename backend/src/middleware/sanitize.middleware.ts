@@ -1,22 +1,30 @@
 import { Request, Response, NextFunction } from 'express';
 
-const sanitizeString = (str: string): string =>
-  str.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
-
-const sanitizeObject = (obj: any): any => {
-  if (typeof obj === 'string') return sanitizeString(obj);
-  if (Array.isArray(obj)) return obj.map(sanitizeObject);
-  if (obj && typeof obj === 'object') {
-    return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, sanitizeObject(v)]));
+function clean(value: unknown): unknown {
+  if (typeof value === 'string') {
+    return value
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
   }
-  return obj;
-};
+  if (Array.isArray(value)) return value.map(clean);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, clean(v)])
+    );
+  }
+  return value;
+}
 
 export const sanitize = (req: Request, _res: Response, next: NextFunction): void => {
-  if (req.body) req.body = sanitizeObject(req.body);
+  if (req.body) req.body = clean(req.body);
   if (req.query) {
-    const sanitized = sanitizeObject(req.query);
-    Object.keys(sanitized).forEach((k) => { (req.query as any)[k] = sanitized[k]; });
+    for (const key of Object.keys(req.query)) {
+      if (Object.prototype.hasOwnProperty.call(req.query, key)) {
+        (req.query as any)[key] = clean(req.query[key]);
+      }
+    }
   }
   next();
 };

@@ -7,25 +7,26 @@ export interface AuthRequest extends Request {
 
 export const protect = (req: AuthRequest, res: Response, next: NextFunction): void => {
   const token = req.headers.authorization?.split(' ')[1];
+
   if (!token) {
-    res.status(401).json({ success: false, message: 'Not authorized, no token' });
+    res.status(401).json({ success: false, message: 'Authentication required.' });
     return;
   }
+
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'atlantic_ai_secret_key') as { id: string; role: string };
-    req.user = decoded;
+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as { id: string; role: string };
+    req.user = payload;
     next();
   } catch {
-    res.status(401).json({ success: false, message: 'Not authorized, token invalid' });
+    res.status(401).json({ success: false, message: 'Invalid or expired token.' });
   }
 };
 
-export const authorize = (...roles: string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction): void => {
+export const authorize = (...roles: string[]) =>
+  (req: AuthRequest, res: Response, next: NextFunction): void => {
     if (!req.user || !roles.includes(req.user.role)) {
-      res.status(403).json({ success: false, message: 'Forbidden: insufficient permissions' });
+      res.status(403).json({ success: false, message: 'You do not have permission to perform this action.' });
       return;
     }
     next();
   };
-};

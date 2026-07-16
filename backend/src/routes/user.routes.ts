@@ -9,7 +9,7 @@ router.use(protect);
 router.get('/profile', getProfile);
 router.put('/profile', updateProfile);
 router.put('/change-password', changePassword);
-router.get('/', authorize('ADMIN', 'MANAGER'), getAllUsers);
+router.get('/', getAllUsers);
 router.delete('/:id', authorize('ADMIN'), deleteUser);
 
 export default router;

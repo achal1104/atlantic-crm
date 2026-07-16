@@ -1,4 +1,4 @@
-import express, { Application } from 'express';
+import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -20,37 +20,32 @@ import { errorHandler } from './middleware/error.middleware.js';
 import { sanitize } from './middleware/sanitize.middleware.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const swaggerDoc = yaml.load(readFileSync(resolve(__dirname, '../../docs/openapi.yaml'), 'utf8')) as object;
 
-const app: Application = express();
+const app = express();
 
-// Security headers
 app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
 }));
 
-// Auth rate limiting
-app.use('/api/auth', rateLimit({
+const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   message: { success: false, message: 'Too many requests, please try again later.' },
-}));
+});
 
-// Logging & parsing
 app.use(morgan('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Input sanitization (XSS protection)
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(sanitize);
 
-// Swagger docs
+const swaggerDoc = yaml.load(
+  readFileSync(resolve(__dirname, '../../docs/openapi.yaml'), 'utf8')
+) as object;
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
 
-// Routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/dashboard', dashboardRoutes);
@@ -58,12 +53,10 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/followups', followupRoutes);
 app.use('/api/notifications', notificationRoutes);
 
-// Health check
 app.get('/api/health', (_req, res) => {
-  res.status(200).json({ success: true, message: 'Atlantic AI CRM API is running!' });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Global error handler (must be last)
 app.use(errorHandler);
 
 export default app;
