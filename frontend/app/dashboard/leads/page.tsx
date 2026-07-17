@@ -97,10 +97,11 @@ export default function LeadsPage() {
     e.preventDefault();
     setError('');
     const payload = {
-      ...form,
-      budget: form.budget ? parseFloat(form.budget) : undefined,
-      leadScore: parseInt(form.leadScore),
-    };
+  ...form,
+  budget: form.budget ? parseFloat(form.budget) : undefined,
+  leadScore: parseInt(form.leadScore),
+  nextFollowUp: form.nextFollowUp ? new Date(form.nextFollowUp).toISOString() : undefined,
+};
     try {
       if (editLead) await updateLead.mutateAsync({ id: editLead.id, data: payload });
       else await createLead.mutateAsync(payload);
