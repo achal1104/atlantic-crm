@@ -1,17 +1,19 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false,
-  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendEmail = async (to: string, subject: string, html: string): Promise<void> => {
-  await transporter.sendMail({
-    from: `"Atlantic AI CRM" <${process.env.SMTP_USER}>`,
-    to, subject, html,
+  const { error } = await resend.emails.send({
+    from: 'Atlantic AI CRM <onboarding@resend.dev>',
+    to,
+    subject,
+    html,
   });
+
+  if (error) {
+    console.error('Failed to send email:', error);
+    throw new Error('Failed to send email');
+  }
 };
 
 export const sendPasswordResetEmail = async (to: string, resetUrl: string): Promise<void> => {
