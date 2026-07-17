@@ -9,7 +9,7 @@ export const api = axios.create({
 
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('token');
+    const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -18,12 +18,10 @@ api.interceptors.request.use((config) => {
 });
 
 export const setAuthToken = (token: string) => {
-  localStorage.setItem('token', token);
-  document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24}`;
+  document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24}; SameSite=Strict`;
 };
 
 export const clearAuthToken = () => {
-  localStorage.removeItem('token');
   localStorage.removeItem('user');
   document.cookie = 'token=; path=/; max-age=0';
 };
