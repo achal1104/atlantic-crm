@@ -7,6 +7,8 @@ info:
     name: Atlantic AI
 
 servers:
+  - url: https://atlantic-crm-api.onrender.com/api
+    description: Production
   - url: http://localhost:5000/api
     description: Local development
 
